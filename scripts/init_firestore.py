@@ -5,6 +5,11 @@ This script initializes all Firestore collections with proper structure and samp
 Run this after setting up your GCP project and Firestore database.
 """
 
+from models import (
+    Stock, Company, PriceData, NewsItem, Portfolio, Position,
+    Transaction, WatchlistItem, MLModel, TradeSignal, TradingRecommendation
+)
+from firestore_client import FirestoreClient
 import os
 import sys
 from datetime import datetime, timedelta
@@ -13,23 +18,17 @@ from decimal import Decimal
 # Add the shared directory to the path
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'shared'))
 
-from firestore_client import FirestoreClient
-from models import (
-    Stock, Company, PriceData, NewsItem, Portfolio, Position, 
-    Transaction, WatchlistItem, MLModel, TradeSignal, TradingRecommendation
-)
-
 
 class FirestoreInitializer:
     """Initialize Firestore collections with proper structure and sample data."""
-    
+
     def __init__(self, project_id: str):
         self.client = FirestoreClient(project_id)
-        
+
     async def create_collections(self):
         """Create all collections with sample data."""
         print("🚀 Initializing Firestore collections...")
-        
+
         # Initialize collections in order
         await self._init_companies()
         await self._init_stocks()
@@ -42,13 +41,13 @@ class FirestoreInitializer:
         await self._init_ml_models()
         await self._init_trade_signals()
         await self._init_recommendations()
-        
+
         print("✅ All Firestore collections initialized successfully!")
-    
+
     async def _init_companies(self):
         """Initialize companies collection with sample companies."""
         print("  📊 Creating companies collection...")
-        
+
         companies = [
             Company(
                 symbol="AAPL",
@@ -62,7 +61,7 @@ class FirestoreInitializer:
                 headquarters="Cupertino, CA"
             ),
             Company(
-                symbol="MSFT", 
+                symbol="MSFT",
                 name="Microsoft Corporation",
                 sector="Technology",
                 industry="Software",
@@ -75,7 +74,7 @@ class FirestoreInitializer:
             Company(
                 symbol="GOOGL",
                 name="Alphabet Inc.",
-                sector="Technology", 
+                sector="Technology",
                 industry="Internet Content & Information",
                 market_cap=1700000000000,  # $1.7T
                 employees=182000,
@@ -106,14 +105,14 @@ class FirestoreInitializer:
                 headquarters="Austin, TX"
             )
         ]
-        
+
         for company in companies:
             await self.client.set_document("companies", company.symbol, company.dict())
-            
+
     async def _init_stocks(self):
         """Initialize stocks collection."""
         print("  📈 Creating stocks collection...")
-        
+
         stocks = [
             Stock(
                 symbol="AAPL",
@@ -186,32 +185,34 @@ class FirestoreInitializer:
                 last_updated=datetime.utcnow()
             )
         ]
-        
+
         for stock in stocks:
             await self.client.set_document("stocks", stock.symbol, stock.dict())
-    
+
     async def _init_price_data(self):
         """Initialize price_data collection with historical data."""
         print("  📊 Creating price_data collection...")
-        
+
         symbols = ["AAPL", "MSFT", "GOOGL", "AMZN", "TSLA"]
         base_prices = [175.50, 378.85, 140.25, 145.80, 248.50]
-        
+
         for i, symbol in enumerate(symbols):
             # Create 30 days of historical data
             for days_back in range(30, 0, -1):
                 date = datetime.utcnow() - timedelta(days=days_back)
                 base_price = base_prices[i]
-                
+
                 # Simulate some price variation
                 import random
                 variation = random.uniform(-0.05, 0.05)  # ±5% variation
                 close_price = base_price * (1 + variation)
                 open_price = close_price * (1 + random.uniform(-0.02, 0.02))
-                high_price = max(open_price, close_price) * (1 + random.uniform(0, 0.03))
-                low_price = min(open_price, close_price) * (1 - random.uniform(0, 0.03))
+                high_price = max(open_price, close_price) * \
+                    (1 + random.uniform(0, 0.03))
+                low_price = min(open_price, close_price) * \
+                    (1 - random.uniform(0, 0.03))
                 volume = random.randint(20000000, 60000000)
-                
+
                 price_data = PriceData(
                     symbol=symbol,
                     date=date,
@@ -222,14 +223,14 @@ class FirestoreInitializer:
                     volume=volume,
                     adjusted_close=round(close_price, 2)
                 )
-                
+
                 doc_id = f"{symbol}_{date.strftime('%Y-%m-%d')}"
                 await self.client.set_document("price_data", doc_id, price_data.dict())
-    
+
     async def _init_news(self):
         """Initialize news collection with sample news items."""
         print("  📰 Creating news collection...")
-        
+
         news_items = [
             NewsItem(
                 id="news_001",
@@ -244,7 +245,7 @@ class FirestoreInitializer:
                 relevance_score=0.95
             ),
             NewsItem(
-                id="news_002", 
+                id="news_002",
                 symbol="TSLA",
                 title="Tesla Announces New Manufacturing Plant",
                 summary="Tesla plans to open a new gigafactory in the southwestern United States.",
@@ -268,14 +269,14 @@ class FirestoreInitializer:
                 relevance_score=0.88
             )
         ]
-        
+
         for news in news_items:
             await self.client.set_document("news", news.id, news.dict())
-    
+
     async def _init_portfolio(self):
         """Initialize portfolio collection."""
         print("  💼 Creating portfolio collection...")
-        
+
         portfolio = Portfolio(
             user_id="default_user",
             total_value=125000.00,
@@ -287,13 +288,13 @@ class FirestoreInitializer:
             total_return_percent=25.0,
             last_updated=datetime.utcnow()
         )
-        
+
         await self.client.set_document("portfolio", "default_user", portfolio.dict())
-    
+
     async def _init_positions(self):
         """Initialize positions collection with sample positions."""
         print("  📊 Creating positions collection...")
-        
+
         positions = [
             Position(
                 user_id="default_user",
@@ -340,15 +341,15 @@ class FirestoreInitializer:
                 last_updated=datetime.utcnow()
             )
         ]
-        
+
         for position in positions:
             doc_id = f"{position.user_id}_{position.symbol}"
             await self.client.set_document("positions", doc_id, position.dict())
-    
+
     async def _init_transactions(self):
         """Initialize transactions collection with sample transactions."""
         print("  💳 Creating transactions collection...")
-        
+
         transactions = [
             Transaction(
                 id="txn_001",
@@ -395,14 +396,14 @@ class FirestoreInitializer:
                 timestamp=datetime.utcnow() - timedelta(days=5)
             )
         ]
-        
+
         for transaction in transactions:
             await self.client.set_document("transactions", transaction.id, transaction.dict())
-    
+
     async def _init_watchlist(self):
         """Initialize watchlist collection."""
         print("  👀 Creating watchlist collection...")
-        
+
         watchlist_items = [
             WatchlistItem(
                 user_id="default_user",
@@ -426,22 +427,22 @@ class FirestoreInitializer:
                 added_at=datetime.utcnow() - timedelta(days=1)
             )
         ]
-        
+
         for item in watchlist_items:
             doc_id = f"{item.user_id}_{item.symbol}"
             await self.client.set_document("watchlist", doc_id, item.dict())
-    
+
     async def _init_ml_models(self):
         """Initialize ml_models collection."""
         print("  🤖 Creating ml_models collection...")
-        
+
         model = MLModel(
             model_id="xgboost_v1",
             model_type="classification",
             algorithm="XGBoost",
             version="1.0.0",
             features=[
-                "rsi_14", "macd", "bb_position", "sma_20", "sma_50", 
+                "rsi_14", "macd", "bb_position", "sma_20", "sma_50",
                 "volume_sma", "price_momentum", "volatility"
             ],
             training_symbols=["AAPL", "MSFT", "GOOGL", "AMZN", "TSLA"],
@@ -454,13 +455,13 @@ class FirestoreInitializer:
             created_at=datetime.utcnow(),
             is_active=True
         )
-        
+
         await self.client.set_document("ml_models", model.model_id, model.dict())
-    
+
     async def _init_trade_signals(self):
         """Initialize trade_signals collection."""
         print("  📊 Creating trade_signals collection...")
-        
+
         signals = [
             TradeSignal(
                 id="signal_001",
@@ -493,14 +494,14 @@ class FirestoreInitializer:
                 is_active=True
             )
         ]
-        
+
         for signal in signals:
             await self.client.set_document("trade_signals", signal.id, signal.dict())
-    
+
     async def _init_recommendations(self):
         """Initialize recommendations collection."""
         print("  💡 Creating recommendations collection...")
-        
+
         recommendations = [
             TradingRecommendation(
                 id="rec_001",
@@ -554,7 +555,7 @@ class FirestoreInitializer:
                 is_active=True
             )
         ]
-        
+
         for rec in recommendations:
             await self.client.set_document("recommendations", rec.id, rec.dict())
 
@@ -562,7 +563,7 @@ class FirestoreInitializer:
 async def main():
     """Main function to run the initialization."""
     import asyncio
-    
+
     # Get project ID from environment or prompt
     project_id = os.getenv('GCP_PROJECT_ID')
     if not project_id:
@@ -570,7 +571,7 @@ async def main():
         if not project_id:
             print("❌ Project ID is required!")
             return
-    
+
     try:
         print(f"🚀 Initializing Firestore for project: {project_id}")
         initializer = FirestoreInitializer(project_id)
@@ -588,7 +589,7 @@ async def main():
         print("  - ml_models: Machine learning model metadata")
         print("  - trade_signals: Generated trading signals")
         print("  - recommendations: AI-powered trading recommendations")
-        
+
     except Exception as e:
         print(f"❌ Error initializing Firestore: {e}")
         print("Make sure you have:")
