@@ -1,0 +1,73 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Data ingestion collections - read-only for most users
+    match /di_prices_daily/{document} {
+      allow read: if true;
+      allow write: if false; // Only services can write
+    }
+    
+    match /di_prices_intraday/{document} {
+      allow read: if true;
+      allow write: if false; // Only services can write
+    }
+    
+    match /di_fundamentals/{document} {
+      allow read: if true;
+      allow write: if false; // Only services can write
+    }
+    
+    match /di_company_news/{document} {
+      allow read: if true;
+      allow write: if false; // Only services can write
+    }
+    
+    match /di_market_news/{document} {
+      allow read: if true;
+      allow write: if false; // Only services can write
+    }
+    
+    // ML pipeline collections
+    match /ml_recommendations_log/{document} {
+      allow read: if true;
+      allow write: if false; // Only ML service can write
+    }
+    
+    match /ml_models/{document} {
+      allow read: if true;
+      allow write: if false; // Only ML service can write
+    }
+    
+    match /ml_model_metadata/{document} {
+      allow read: if true;
+      allow write: if false; // Only ML service can write
+    }
+    
+    // Strategy engine collections
+    match /se_trade_signals/{document} {
+      allow read: if true;
+      allow write: if false; // Only strategy engine can write
+    }
+    
+    // Portfolio collections
+    match /pf_positions_active/{document} {
+      allow read: if true;
+      allow write: if false; // Only portfolio service can write
+    }
+    
+    match /pf_positions_history/{document} {
+      allow read: if true;
+      allow write: if false; // Only portfolio service can write
+    }
+    
+    match /pf_transactions/{document} {
+      allow read: if true;
+      allow write: if false; // Only portfolio service can write
+    }
+    
+    match /pf_watchlist/{document} {
+      allow read: if true;
+      allow write: if true; // Users can manage watchlist
+    }
+  }
+}

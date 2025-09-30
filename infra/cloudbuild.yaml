@@ -1,0 +1,277 @@
+# Cloud Build configuration for CI/CD pipeline
+
+steps:
+  # Build all service Docker images in parallel
+  - name: gcr.io/cloud-builders/docker
+    id: build-alphavantage
+    args:
+      - build
+      - -t
+      - gcr.io/$PROJECT_ID/alphavantage-service:$BUILD_ID
+      - -t
+      - gcr.io/$PROJECT_ID/alphavantage-service:latest
+      - ./data-ingestion/alphavantage-service
+    waitFor: ['-']
+
+  - name: gcr.io/cloud-builders/docker
+    id: build-finnhub
+    args:
+      - build
+      - -t
+      - gcr.io/$PROJECT_ID/finnhub-service:$BUILD_ID
+      - -t
+      - gcr.io/$PROJECT_ID/finnhub-service:latest
+      - ./data-ingestion/finnhub-service
+    waitFor: ['-']
+
+  - name: gcr.io/cloud-builders/docker
+    id: build-polygon
+    args:
+      - build
+      - -t
+      - gcr.io/$PROJECT_ID/polygon-service:$BUILD_ID
+      - -t
+      - gcr.io/$PROJECT_ID/polygon-service:latest
+      - ./data-ingestion/polygon-service
+    waitFor: ['-']
+
+  - name: gcr.io/cloud-builders/docker
+    id: build-tiingo
+    args:
+      - build
+      - -t
+      - gcr.io/$PROJECT_ID/tiingo-service:$BUILD_ID
+      - -t
+      - gcr.io/$PROJECT_ID/tiingo-service:latest
+      - ./data-ingestion/tiingo-service
+    waitFor: ['-']
+
+  - name: gcr.io/cloud-builders/docker
+    id: build-orchestrator
+    args:
+      - build
+      - -t
+      - gcr.io/$PROJECT_ID/orchestrator-service:$BUILD_ID
+      - -t
+      - gcr.io/$PROJECT_ID/orchestrator-service:latest
+      - ./data-ingestion/orchestrator
+    waitFor: ['-']
+
+  - name: gcr.io/cloud-builders/docker
+    id: build-ml-pipeline
+    args:
+      - build
+      - -t
+      - gcr.io/$PROJECT_ID/ml-pipeline-service:$BUILD_ID
+      - -t
+      - gcr.io/$PROJECT_ID/ml-pipeline-service:latest
+      - ./ml-pipeline
+    waitFor: ['-']
+
+  - name: gcr.io/cloud-builders/docker
+    id: build-strategy-engine
+    args:
+      - build
+      - -t
+      - gcr.io/$PROJECT_ID/strategy-engine-service:$BUILD_ID
+      - -t
+      - gcr.io/$PROJECT_ID/strategy-engine-service:latest
+      - ./strategy-engine
+    waitFor: ['-']
+
+  - name: gcr.io/cloud-builders/docker
+    id: build-portfolio
+    args:
+      - build
+      - -t
+      - gcr.io/$PROJECT_ID/portfolio-service:$BUILD_ID
+      - -t
+      - gcr.io/$PROJECT_ID/portfolio-service:latest
+      - ./portfolio-service
+    waitFor: ['-']
+
+  # Push all images to Container Registry
+  - name: gcr.io/cloud-builders/docker
+    id: push-images
+    args:
+      - push
+      - --all-tags
+      - gcr.io/$PROJECT_ID/alphavantage-service
+    waitFor: ['build-alphavantage']
+
+  - name: gcr.io/cloud-builders/docker
+    args:
+      - push
+      - --all-tags
+      - gcr.io/$PROJECT_ID/finnhub-service
+    waitFor: ['build-finnhub']
+
+  - name: gcr.io/cloud-builders/docker
+    args:
+      - push
+      - --all-tags
+      - gcr.io/$PROJECT_ID/polygon-service
+    waitFor: ['build-polygon']
+
+  - name: gcr.io/cloud-builders/docker
+    args:
+      - push
+      - --all-tags
+      - gcr.io/$PROJECT_ID/tiingo-service
+    waitFor: ['build-tiingo']
+
+  - name: gcr.io/cloud-builders/docker
+    args:
+      - push
+      - --all-tags
+      - gcr.io/$PROJECT_ID/orchestrator-service
+    waitFor: ['build-orchestrator']
+
+  - name: gcr.io/cloud-builders/docker
+    args:
+      - push
+      - --all-tags
+      - gcr.io/$PROJECT_ID/ml-pipeline-service
+    waitFor: ['build-ml-pipeline']
+
+  - name: gcr.io/cloud-builders/docker
+    args:
+      - push
+      - --all-tags
+      - gcr.io/$PROJECT_ID/strategy-engine-service
+    waitFor: ['build-strategy-engine']
+
+  - name: gcr.io/cloud-builders/docker
+    args:
+      - push
+      - --all-tags
+      - gcr.io/$PROJECT_ID/portfolio-service
+    waitFor: ['build-portfolio']
+
+  # Deploy services to Cloud Run
+  - name: gcr.io/google.com/cloudsdktool/cloud-sdk
+    id: deploy-services
+    entrypoint: bash
+    args:
+      - -c
+      - |
+        # Deploy all services to Cloud Run
+        gcloud run deploy alphavantage-service \
+          --image gcr.io/$PROJECT_ID/alphavantage-service:$BUILD_ID \
+          --platform managed \
+          --region us-central1 \
+          --allow-unauthenticated \
+          --port 8080 \
+          --memory 1Gi \
+          --cpu 1 \
+          --max-instances 10
+
+        gcloud run deploy finnhub-service \
+          --image gcr.io/$PROJECT_ID/finnhub-service:$BUILD_ID \
+          --platform managed \
+          --region us-central1 \
+          --allow-unauthenticated \
+          --port 8080 \
+          --memory 1Gi \
+          --cpu 1 \
+          --max-instances 10
+
+        gcloud run deploy polygon-service \
+          --image gcr.io/$PROJECT_ID/polygon-service:$BUILD_ID \
+          --platform managed \
+          --region us-central1 \
+          --allow-unauthenticated \
+          --port 8080 \
+          --memory 1Gi \
+          --cpu 1 \
+          --max-instances 10
+
+        gcloud run deploy tiingo-service \
+          --image gcr.io/$PROJECT_ID/tiingo-service:$BUILD_ID \
+          --platform managed \
+          --region us-central1 \
+          --allow-unauthenticated \
+          --port 8080 \
+          --memory 1Gi \
+          --cpu 1 \
+          --max-instances 10
+
+        gcloud run deploy orchestrator-service \
+          --image gcr.io/$PROJECT_ID/orchestrator-service:$BUILD_ID \
+          --platform managed \
+          --region us-central1 \
+          --allow-unauthenticated \
+          --port 8080 \
+          --memory 2Gi \
+          --cpu 1 \
+          --max-instances 5
+
+        gcloud run deploy ml-pipeline-service \
+          --image gcr.io/$PROJECT_ID/ml-pipeline-service:$BUILD_ID \
+          --platform managed \
+          --region us-central1 \
+          --allow-unauthenticated \
+          --port 8080 \
+          --memory 4Gi \
+          --cpu 2 \
+          --max-instances 3
+
+        gcloud run deploy strategy-engine-service \
+          --image gcr.io/$PROJECT_ID/strategy-engine-service:$BUILD_ID \
+          --platform managed \
+          --region us-central1 \
+          --allow-unauthenticated \
+          --port 8080 \
+          --memory 2Gi \
+          --cpu 1 \
+          --max-instances 5
+
+        gcloud run deploy portfolio-service \
+          --image gcr.io/$PROJECT_ID/portfolio-service:$BUILD_ID \
+          --platform managed \
+          --region us-central1 \
+          --allow-unauthenticated \
+          --port 8080 \
+          --memory 2Gi \
+          --cpu 1 \
+          --max-instances 5
+    waitFor: ['push-images']
+
+  # Build and deploy frontend
+  - name: node:18
+    id: build-frontend
+    entrypoint: bash
+    args:
+      - -c
+      - |
+        cd frontend
+        npm install
+        npm run build
+    waitFor: ['-']
+
+  - name: gcr.io/google.com/cloudsdktool/cloud-sdk
+    id: deploy-frontend
+    entrypoint: bash
+    args:
+      - -c
+      - |
+        # Deploy to Firebase Hosting
+        npm install -g firebase-tools
+        cd frontend
+        firebase deploy --project $PROJECT_ID --only hosting
+    waitFor: ['build-frontend']
+
+# Build options
+options:
+  machineType: E2_HIGHCPU_8
+  substitution_option: ALLOW_LOOSE
+
+# Trigger configuration
+trigger:
+  github:
+    owner: your-github-username  # Update this
+    name: moda-trading            # Update this
+    push:
+      branch: ^main$
+
+timeout: 3600s  # 1 hour timeout
